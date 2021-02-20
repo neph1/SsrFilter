@@ -1,5 +1,4 @@
 #import "Common/ShaderLib/GLSLCompat.glsllib"
-
 #import "Common/ShaderLib/MultiSample.glsllib"
 /**
 #######################
@@ -58,7 +57,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //// Size of a pixel used by NEARBY_SAMPLES
 #define PIXEL_SIZE_MULT 1.
 //// A depth difference equals or below this will be considered 0
-#define DEPTH_TEST_BIAS 0.00001
+#define DEPTH_TEST_BIAS 0.0001
 ////
 //// # DEBUG
 // #define _ENABLE_TESTS 1
@@ -71,11 +70,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ///// ########### ########### ########### 
 
 
-#ifndef SCENE_NORMALS
-    // If normal map is not provided, fallback to normal approximation
-    #define USE_APPROXIMATED_NORMALS 1
-    #undef USE_APPROXIMATED_GLOSSINESS
-#else 
+#ifdef SCENE_NORMALS
     uniform sampler2D m_Normals;
 #endif
 
@@ -103,10 +98,8 @@ uniform mat4 g_ViewProjectionMatrixInverse;
 uniform mat4 g_ViewProjectionMatrix;
 uniform mat4 g_ProjectionMatrix;
 uniform vec2 g_FrustumNearFar;
-uniform vec3 m_FrustumCorner;
 uniform vec2 m_NearReflectionsFade;
 uniform vec2 m_FarReflectionsFade;
-uniform int m_RaySamples;
 uniform float m_StepLength;
 uniform float m_ReflectionFactor;
 /**
@@ -153,7 +146,7 @@ struct HitResult {
 *        z=(0,1) for near and far
 */
 vec3 getScreenPos(in vec2 texCoord,in float depth){
-    vec3 screenpos= vec3(texCoord,depth);
+    vec3 screenpos= vec3(texCoord, depth);
     return screenpos;
 }
 
@@ -161,7 +154,12 @@ vec3 getScreenPos(in vec2 texCoord,in float depth){
 * Exponential to linear depth
 */
 float linearizeDepth(in float depth){
-    return (2. * g_FrustumNearFar.x) / (g_FrustumNearFar.y + g_FrustumNearFar.x - depth * (g_FrustumNearFar.y - g_FrustumNearFar.x));
+    float f=g_FrustumNearFar.y;
+    float n = g_FrustumNearFar.x;
+    float d=depth*2.-1.;
+    d= (2. * n *f ) / (f + n - d * (f - n));
+    return (d-n)/(f-n);
+    //return (2. * g_FrustumNearFar.x) / (g_FrustumNearFar.y + g_FrustumNearFar.x - depth * (g_FrustumNearFar.y - g_FrustumNearFar.x));
 }
 
 /**
@@ -183,78 +181,6 @@ vec3 screenPosToWPos(in vec3 screenPos){
     return pos.xyz/pos.w;
 }
 
-vec3 getPosition(float depthv, in vec2 uv){
-  //Reconstruction from depth
-  float depth = (2.0 * g_FrustumNearFar.x) / (g_FrustumNearFar.y + g_FrustumNearFar.x - depthv * (g_FrustumNearFar.y-g_FrustumNearFar.x));
-
-  //one frustum corner methodPreNormalPass
-  float x = mix(-m_FrustumCorner.x, m_FrustumCorner.x, uv.x);
-  float y = mix(-m_FrustumCorner.y, m_FrustumCorner.y, uv.y);
-
-  return depth * vec3(x, y, m_FrustumCorner.z);
-}
-
-#define fresnelExp 5.0
-
-float fresnel(vec3 direction, vec3 normal) {
-    vec3 halfDirection = normalize(normal + direction);
-    
-    float cosine = dot(halfDirection, direction);
-    float product = max(cosine, 0.0);
-    float factor = 1.0 - pow(product, fresnelExp);
-    
-    return factor;
-}
-
-
-
-#ifdef USE_APPROXIMATED_NORMALS
-    vec3 approximateNormal2(in vec3 pos,in vec2 texCoord){
-        float step = g_ResolutionInverse.x ;
-    float stepy = g_ResolutionInverse.y ;
-    float depth2 = getDepth(m_DepthTexture,texCoord + vec2(step,-stepy)).r;
-    float depth3 = getDepth(m_DepthTexture,texCoord + vec2(-step,-stepy)).r;
-    vec3 pos2 = vec3(getPosition(depth2,texCoord + vec2(step,-stepy)));
-    vec3 pos3 = vec3(getPosition(depth3,texCoord + vec2(-step,-stepy)));
-
-    vec3 v1 = (pos - pos2).xyz;
-    vec3 v2 = (pos3 - pos2).xyz;
-    vec4 normal = vec4(normalize(cross(-v1, v2)), 1.0) * g_ProjectionMatrix;
-    return normal.xyz / normal.w;
-    }
-    /**
-    * Use nearby positions to aproximate normals
-    */
-    // Adapted from https://github.com/jMonkeyEngine/jmonkeyengine/blob/master/jme3-effects/src/main/resources/Common/MatDefs/SSAO/ssao.frag#L33
-    vec3 approximateNormal(in vec3 pos,in vec2 texCoord){
-        #ifdef FAST_APPROXIMATIONS
-            vec3 v1=dFdx(pos);
-            vec3 v2=dFdy(pos);
-        #else
-            float step = g_ResolutionInverse.x ;
-            float stepy = g_ResolutionInverse.y ;
-            float depth2 = texture(m_DepthTexture,texCoord + vec2(step,-stepy)).r;
-            float depth3 = texture(m_DepthTexture,texCoord + vec2(-step,-stepy)).r;
-            vec3 pos2=screenPosToWPos( getScreenPos(texCoord + vec2(step,-stepy),depth2) );
-            vec3 pos3=screenPosToWPos( getScreenPos(texCoord + vec2(-step,-stepy),depth3) );
-            vec3 v1 = (pos - pos2).xyz;
-            vec3 v2 = (pos3 - pos2).xyz;              
-        #endif
-        return normalize(cross(-v1, v2));
-    }
-#else
-    vec3 getNormal(in vec2 texCoord){
-        vec3 wNormal = texture(m_Normals, texCoord).xyz * 2.0 - 1.0;
-        vec4 normal = vec4(wNormal , 1.0) * g_ProjectionMatrix;
-        wNormal = normal.xyz / normal.w;
-        wNormal.z = (2.0 * g_FrustumNearFar.x) / (g_FrustumNearFar.y + g_FrustumNearFar.x - wNormal.z * (g_FrustumNearFar.y-g_FrustumNearFar.x));
-        #ifdef RG_NORMAL_MAP
-            wNormal.z = sqrt(1-clamp(dot(wNormal.xy, wNormal.xy),0.,1.)); // Reconstruct Z
-        #endif
-        return normalize(wNormal);
-    }
-#endif
-
 #ifdef USE_APPROXIMATED_GLOSSINESS
     /**
     * Use nearby normals to aproximate glossiness
@@ -266,6 +192,54 @@ float fresnel(vec3 direction, vec3 normal) {
         maxd=smoothstep(0.,1.,maxd);
         maxd=pow(maxd,8)*1.;
         return 1.-clamp(maxd,0,1);
+    }
+#endif
+
+
+#ifdef USE_APPROXIMATED_NORMALS
+    /**
+    * Use nearby positions to aproximate normals
+    */
+    // Adapted from https://github.com/jMonkeyEngine/jmonkeyengine/blob/master/jme3-effects/src/main/resources/Common/MatDefs/SSAO/ssao.frag#L33
+    vec3 approximateNormal(in vec3 pos,in vec2 texCoord){
+        #ifdef FAST_APPROXIMATIONS
+            vec3 v1=dFdx(pos);
+            vec3 v2=dFdy(pos);
+        #else
+            float step = g_ResolutionInverse.x;
+            float stepy = g_ResolutionInverse.y;
+            float depth2 = texture(m_DepthTexture,texCoord + vec2(step,-stepy)).r;
+            float depth3 = texture(m_DepthTexture,texCoord + vec2(-step,-stepy)).r;
+            vec3 pos2=screenPosToWPos( getScreenPos(texCoord + vec2(step,-stepy), depth2) );
+            vec3 pos3=screenPosToWPos( getScreenPos(texCoord + vec2(-step,-stepy), depth3) );
+            vec3 v1 = (pos - pos2).xyz;
+            vec3 v2 = (pos3 - pos2).xyz;              
+        #endif
+        return normalize(cross(-v1, v2));
+    }
+#else
+    vec3 getNormal(in vec2 texCoord, out float glossiness){
+        vec3 wNormal = texture(m_Normals, texCoord).xyz;
+        
+        #ifdef RG_NORMAL_MAP
+            #ifdef GLOSSINESS_PACKET_IN_NORMAL_B
+                glossiness = wNormal.z;
+            #endif
+            wNormal.xy = wNormal.xy * 2.0 - 1.0;
+            //wNormal.z = sqrt(1.0 - wNormal.x*wNormal.x - wNormal.y * wNormal.y);
+            wNormal.z = sqrt(1-clamp(dot(wNormal.xy, wNormal.xy),0.,1.)); // Reconstruct Z
+        #else
+            wNormal = wNormal * 2.0 - 1.0;
+            vec4 normal = vec4(wNormal , 1.0);
+            wNormal = normal.xyz / normal.w;
+            wNormal.z = (2.0 * g_FrustumNearFar.x) / (g_FrustumNearFar.y + g_FrustumNearFar.x - wNormal.z * (g_FrustumNearFar.y-g_FrustumNearFar.x));
+        #endif
+        
+        #ifdef USE_APPROXIMATED_GLOSSINESS 
+            glossiness = min(glossiness, approximateGlossiness(wNormal,texCoord));
+        #endif
+        
+        return normalize(wNormal);
     }
 #endif
 
@@ -316,27 +290,23 @@ Ray createRay(in vec2 texCoord,in float depth){
     Ray ray;
     ray.sFrom=getScreenPos(texCoord,depth);
     ray.wFrom = screenPosToWPos(ray.sFrom);
-    ray.surfaceGlossiness=1.;
-
+    ray.surfaceGlossiness=1.* m_ReflectionFactor;
+    
     #ifdef USE_APPROXIMATED_NORMALS
         vec3 wNormal=approximateNormal(ray.wFrom, texCoord);
     #else
-        vec3 wNormal= getNormal(texCoord);
-        #ifdef GLOSSINESS_PACKET_IN_NORMAL_B
-            ray.surfaceGlossiness = normalize(texture2D(m_Normals, texCoord).xyz * 2.0 - 1.0).z * m_ReflectionFactor;
-        #elif defined(USE_APPROXIMATED_GLOSSINESS) 
-            ray.surfaceGlossiness = min(ray.surfaceGlossiness, approximateGlossiness(normalize(texture2D(m_Normals, texCoord).xyz * 2.0 - 1.0),texCoord)) * m_ReflectionFactor;
-        #endif
+        float glossiness = 0.0;
+        vec3 wNormal= getNormal(texCoord, glossiness);
+        ray.surfaceGlossiness=glossiness * m_ReflectionFactor;
     #endif
     
-    ray.normal = normalize(texture2D(m_Normals, texCoord).xyz * 2.0 - 1.0);
+    ray.normal = wNormal;
 
     // direction from camera to fragment (in world space)
     vec3 wDir = normalize(ray.wFrom - g_CameraPosition);
-    vec3 sDir = normalize(ray.sFrom - vec3(0.5,0.5,0.0));
+
     // reflection vector
     ray.wDir = normalize(reflect(wDir, wNormal));
-    ray.sDir = normalize(reflect(sDir, ray.normal));
     return ray;
 }
 
@@ -362,13 +332,13 @@ HitResult performRayMarching(in Ray ray){
 
     float linearSourceDepth=linearizeDepth(ray.sFrom.z);
 
-    for(int i = 0; i < m_RaySamples; i++) {
+    for(int i = 0; i < RAY_SAMPLES; i++) {
         // if(hit)break;
-        //sampleWPos = ray.wFrom + ray.wDir * stepLength;
-        sampleScreenPos = ray.sFrom + ray.sDir * stepLength; // wposToScreenPos(sampleWPos); // 
+        sampleWPos = ray.wFrom + ray.wDir * stepLength;
+        sampleScreenPos = wposToScreenPos(sampleWPos); // ray.sFrom + ray.sDir * stepLength;
            
         hitSurfaceScreenPos = getScreenPos(sampleScreenPos.xy, getDepth(m_DepthTexture, sampleScreenPos.xy).r);
-        //vec3 hitSurfaceWPos = screenPosToWPos(hitSurfaceScreenPos);
+        vec3 hitSurfaceWPos = screenPosToWPos(hitSurfaceScreenPos);
      
         int j=0;
         #if NEARBY_SAMPLES>0
@@ -384,20 +354,20 @@ HitResult performRayMarching(in Ray ray){
             if(hit && result.screenPos.x == -1){
                 result.screenPos=sampleScreenPos;
                 // Fade distant reflections
-                result.reflStrength=distance(hitSurfaceScreenPos,ray.sFrom);      
+                result.reflStrength=distance(hitSurfaceWPos,ray.wFrom);      
                 result.reflStrength=smoothstep(m_NearReflectionsFade.x,m_NearReflectionsFade.y, result.reflStrength)
                 *(1.-smoothstep(m_FarReflectionsFade.x,m_FarReflectionsFade.y, result.reflStrength));
             }
         #if NEARBY_SAMPLES>0
             hitSurfaceScreenPos = getScreenPos(sampleScreenPos.xy,
-                texture(m_DepthTexture, sampleScreenPos.xy+_SAMPLES[j].xy * g_ResolutionInverse).r
+                texture(m_DepthTexture, sampleScreenPos.xy + _SAMPLES[j].xy * g_ResolutionInverse).r
             );
             j++;
         }while(j<=NEARBY_SAMPLES);
         #endif
                      
         // Compute next step length
-        stepLength = length(ray.sFrom - hitSurfaceScreenPos);
+        stepLength = length(ray.wFrom - hitSurfaceWPos);
     }
     return result;    
 }
@@ -421,7 +391,7 @@ void main(){
         // Render reflections
         if(result.screenPos.x!=-1){
             outFragColor.rgb = texture2D(m_Texture,result.screenPos.xy).rgb;
-            outFragColor.a = d*ray.surfaceGlossiness*result.reflStrength;
+            outFragColor.a = d * ray.surfaceGlossiness*result.reflStrength;
             //float fresnel = fresnel(ray.wDir, ray.normal);
             //outFragColor.rgb *= fresnel;
         }  

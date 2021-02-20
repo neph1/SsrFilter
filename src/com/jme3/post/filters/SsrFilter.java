@@ -58,9 +58,9 @@ public class SsrFilter extends Filter{
 
     private RenderManager renderManager;
     private ViewPort viewPort;
-    private Filter.Pass normalPass;
-    private Filter.Pass ssrPass;
-    private Filter.Pass[] blurPass;
+    private Pass normalPass;
+    private Pass ssrPass;
+    private Pass[] blurPass;
     private boolean approximateNormals = false;
     private boolean approximateGlossiness = true;
 
@@ -109,7 +109,7 @@ public class SsrFilter extends Filter{
         
         
 //        if(!approximateNormals){
-            normalPass = new Filter.Pass();
+            normalPass = new Pass();
             normalPass.init(renderManager.getRenderer(), (int) (screenWidth / downSampleFactor), (int) (screenHeight / downSampleFactor), Image.Format.RGBA8, Image.Format.Depth);
 //        }
 
@@ -127,7 +127,7 @@ public class SsrFilter extends Filter{
         ssrMaterial.setVector2("NearReflectionsFade", nearFade);
         ssrMaterial.setVector2("FarReflectionsFade", farFade);
         
-        ssrPass = new Filter.Pass("SSR pass") {
+        ssrPass = new Pass("SSR pass") {
 
             @Override
             public boolean requiresDepthAsTexture() {
@@ -152,9 +152,9 @@ public class SsrFilter extends Filter{
         blurMaterial.setFloat("BlurScale", blurScale);
         blurMaterial.setFloat("Sigma", sigma);
         
-        blurPass = new Filter.Pass[blurPasses-1];
+        blurPass = new Pass[blurPasses-1];
         for(int i = 0; i < blurPasses-1; i++){
-            blurPass[i] = new Filter.Pass("Blur Pass"); 
+            blurPass[i] = new Pass("Blur Pass"); 
             Material passMat = blurMaterial.clone();
             passMat.setBoolean("Horizontal", i % 2 == 0);
             if(i == 0){
