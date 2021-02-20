@@ -12,8 +12,8 @@ You need this in your PBRLighting.j3md:
 
     Technique PreNormalGlossPass {
 
-        VertexShader GLSL100 :   MatDefs/normal_gloss.vert
-        FragmentShader GLSL100 : MatDefs/normal_gloss.frag
+        VertexShader GLSL100 :   MatDefs/SSR/normal_gloss.vert
+        FragmentShader GLSL100 : MatDefs/SSR/normal_gloss.frag
 
         WorldParameters {
             WorldViewProjectionMatrix
