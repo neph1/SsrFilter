@@ -1,14 +1,14 @@
 # SsrFilter
 Stand alone SSR filter for jMonkeyEngine3
 
-Based on the work of https://github.com/riccardobl
+Based on https://github.com/riccardobl/SimpleSSRShader
 
 
 Essentially same as in this PR: https://github.com/jMonkeyEngine/jmonkeyengine/pull/1144
 
 I thought this might be an easier way for people to get the filter and improve it.
 
-You need this in your PBRLighting.j3md:
+It's dependent on a PreNormalGloss pass defined in PBRLighting.j3md:
 
     Technique PreNormalGlossPass {
 
@@ -36,6 +36,8 @@ You need this in your PBRLighting.j3md:
         }
 
     }
+
+I didn't want to include the whole modified PBRLighting due to possible conflicts(?).
 
 Demo here:
 
