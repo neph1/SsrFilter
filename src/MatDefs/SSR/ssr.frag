@@ -88,7 +88,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     );
 #endif
 
+#if defined GL_ES
+in vec2 texCoord;
+#else
 noperspective in vec2 texCoord;
+#endif
 
 uniform vec2 g_ResolutionInverse;
 uniform sampler2D m_DepthTexture;
@@ -190,8 +194,8 @@ vec3 screenPosToWPos(in vec3 screenPos){
         vec3 d2 = dFdy(normal);
         float maxd=max(dot(d1,d1),dot(d2,d2));
         maxd=smoothstep(0.,1.,maxd);
-        maxd=pow(maxd,8)*1.;
-        return 1.-clamp(maxd,0,1);
+        maxd=pow(maxd,8.0)*1.0;
+        return 1.-clamp(maxd,0.0,1.0);
     }
 #endif
 
@@ -351,7 +355,7 @@ HitResult performRayMarching(in Ray ray){
                 linearHitSurfaceDepth>linearSourceDepth // check if the thing we want to reflect is behind the source of the ray
                 && abs(linearSampleDepth - linearHitSurfaceDepth) < DEPTH_TEST_BIAS; // check if the ray is (~almost) hitting the surface          
             // if first hit (letting the cycle running helds to better performances than breaking it)
-            if(hit && result.screenPos.x == -1){
+            if(hit && result.screenPos.x == -1.0){
                 result.screenPos=sampleScreenPos;
                 // Fade distant reflections
                 result.reflStrength=distance(hitSurfaceWPos,ray.wFrom);      
@@ -378,7 +382,7 @@ void main(){
 
     float depth=getDepth(m_DepthTexture,texCoord).r;
 
-    if(depth!=1){ // ignore the sky    
+    if(depth!=1.0){ // ignore the sky    
         // Build the ray
             Ray ray=createRay(texCoord, depth);
         // Perform ray marching
@@ -386,10 +390,10 @@ void main(){
 
         // Used to fade reflections near screen edges to remove artifacts
         float d=distance(result.screenPos.xy,vec2(0.5));
-        d=pow(1.-clamp(d,0.,.5)*2.,2);
+        d=pow(1.0-clamp(d,0.0,0.5)*2.0,2.0);
         
         // Render reflections
-        if(result.screenPos.x!=-1){
+        if(result.screenPos.x!=-1.0){
             outFragColor.rgb = texture2D(m_Texture,result.screenPos.xy).rgb;
             outFragColor.a = d * ray.surfaceGlossiness*result.reflStrength;
             //float fresnel = fresnel(ray.wDir, ray.normal);

@@ -43,8 +43,8 @@ MaterialDef SSR {
     }
 
     Technique {
-        VertexShader GLSL130:   MatDefs/SSR/ssr.vert
-        FragmentShader GLSL130:  MatDefs/SSR/ssr.frag
+        VertexShader GLSL300 GLSL130:   MatDefs/SSR/ssr.vert
+        FragmentShader GLSL300 GLSL130:  MatDefs/SSR/ssr.frag
 
         WorldParameters {
             ResolutionInverse
