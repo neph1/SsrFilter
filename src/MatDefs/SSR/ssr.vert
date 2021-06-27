@@ -1,7 +1,11 @@
 in vec4 inPosition;
 in vec2 inTexCoord;
 
+#if defined GL_ES
+out vec2 texCoord;
+#else
 noperspective out vec2 texCoord;
+#endif
 
 void main() {
     vec2 pos = inPosition.xy * 2.0 - 1.0;      

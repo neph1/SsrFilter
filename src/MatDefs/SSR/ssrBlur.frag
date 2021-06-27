@@ -1,3 +1,5 @@
+#import "Common/ShaderLib/GLSLCompat.glsllib"
+
 #define ALPHA_CUT_OFF 0.01
 
 uniform sampler2D m_Texture;
@@ -9,8 +11,11 @@ uniform vec2 g_ResolutionInverse;
 uniform float m_BlurScale;
 uniform float m_Sigma;
 
+#if defined GL_ES
+in vec2 texCoord;
+#else
 noperspective in vec2 texCoord;
-out vec4 outFragColor;
+#endif
 
 #ifdef USE_FAST_BLUR
 // https://github.com/Jam3/glsl-fast-gaussian-blur
@@ -91,9 +96,9 @@ void main(){
     if(texture(m_SSR, texCoord).a > ALPHA_CUT_OFF){
         #ifdef USE_FAST_BLUR
             #ifdef HORIZONTAL
-                vec4 sum = fastBlur(m_SSR, vec2(1 * m_BlurScale, 0) * g_ResolutionInverse);
+                vec4 sum = fastBlur(m_SSR, vec2(1.0 * m_BlurScale, 0.0) * g_ResolutionInverse);
             #else
-                vec4 sum = fastBlur(m_SSR, vec2(0, 1 * m_BlurScale) * g_ResolutionInverse);
+                vec4 sum = fastBlur(m_SSR, vec2(0.0, 1.0 * m_BlurScale) * g_ResolutionInverse);
             #endif
         #else
             vec4 sum = blur(m_SSR);

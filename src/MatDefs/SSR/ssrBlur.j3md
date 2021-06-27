@@ -15,8 +15,8 @@ MaterialDef SSRMerger {
     }
 
     Technique {
-        VertexShader GLSL130:   MatDefs/SSR/ssr.vert
-        FragmentShader GLSL130:  MatDefs/SSR/ssrBlur.frag
+        VertexShader GLSL300 GLSL130:   MatDefs/SSR/ssr.vert
+        FragmentShader GLSL300 GLSL130:  MatDefs/SSR/ssrBlur.frag
 
 
         WorldParameters {
