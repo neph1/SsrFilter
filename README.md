@@ -1,12 +1,23 @@
 # SsrFilter
 Stand alone SSR filter for jMonkeyEngine3
 
+![ssr](https://user-images.githubusercontent.com/7988802/200411755-8c770be4-4afe-402f-accc-e58087a67f84.gif)
+
+https://youtu.be/YxgEYg1D06Y
+
 Based on https://github.com/riccardobl/SimpleSSRShader
 
+Gradle:
 
-Essentially same as in this PR: https://github.com/jMonkeyEngine/jmonkeyengine/pull/1144
+    repositories {
+			...
+			maven { url 'https://jitpack.io' }
+	}
+    dependencies {
+	        implementation 'com.github.neph1:SsrFilter:Tag'
+    }
 
-I thought this might be an easier way for people to get the filter and improve it.
+
 
 It's dependent on a PreNormalGloss pass defined in PBRLighting.j3md:
 
@@ -39,6 +50,3 @@ It's dependent on a PreNormalGloss pass defined in PBRLighting.j3md:
 
 I didn't want to include the whole modified PBRLighting due to possible conflicts(?).
 
-Demo here:
-
-https://youtu.be/YxgEYg1D06Y
