@@ -47,6 +47,10 @@ import com.jme3.post.filters.SsrFilter;
 import com.jme3.scene.Geometry;
 import com.jme3.texture.Texture;
 
+/**
+ * Requires jme3-testdata, or replace with your own data
+ * @author rickard
+ */
 public class TestSsr extends SimpleApplication {
 
     Geometry model;

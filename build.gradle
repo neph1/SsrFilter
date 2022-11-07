@@ -34,7 +34,7 @@ dependencies {
     implementation "org.jmonkeyengine:jme3-desktop:$jmeVer"
     implementation "org.jmonkeyengine:jme3-lwjgl3:$jmeVer"
     implementation "org.jmonkeyengine:jme3-effects:$jmeVer"
-    implementation "org.jmonkeyengine:jme3-testdata:$jmeVer"
+    //implementation "org.jmonkeyengine:jme3-testdata:$jmeVer" //uncomment to run testSsr
 }
 
 mainClassName = 'test.TestSsr'
