@@ -1,4 +1,3 @@
-
 /**
  *
  * @author rickard
@@ -34,13 +33,9 @@
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package mygame;
+package test;
 
-
-import com.jme3.app.DetailedProfilerState;
 import com.jme3.app.SimpleApplication;
-import com.jme3.light.AmbientLight;
-import com.jme3.light.DirectionalLight;
 import com.jme3.light.PointLight;
 import com.jme3.material.Material;
 import com.jme3.math.ColorRGBA;
@@ -49,11 +44,7 @@ import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.jme3.post.FilterPostProcessor;
 import com.jme3.post.filters.SsrFilter;
-import com.jme3.post.ssao.SSAOFilter;
 import com.jme3.scene.Geometry;
-import com.jme3.scene.Node;
-import com.jme3.scene.Spatial;
-import com.jme3.scene.shape.Box;
 import com.jme3.texture.Texture;
 
 public class TestSsr extends SimpleApplication {
@@ -61,63 +52,60 @@ public class TestSsr extends SimpleApplication {
     Geometry model;
 
     public static void main(String[] args) {
-        TestSsr app = new TestSsr();
-        app.setShowSettings(false);
-        app.start();
+	TestSsr app = new TestSsr();
+	app.setShowSettings(false);
+	app.start();
     }
 
     @Override
     public void simpleInitApp() {
-        cam.setLocation(new Vector3f(20, 15, 20));
-        cam.lookAt(Vector3f.ZERO, Vector3f.UNIT_Y);
+	cam.setLocation(new Vector3f(20, 15, 20));
+	cam.lookAt(Vector3f.ZERO, Vector3f.UNIT_Y);
 //        cam.setRotation(new Quaternion(0.046916496f, -0.69500375f, 0.045538206f, 0.7160271f));
 
-        cam.setLocation(new Vector3f(68.45442f, 8.235511f, 7.9676695f));
-        cam.setRotation(new Quaternion(0.046916496f, -0.69500375f, 0.045538206f, 0.7160271f));
+	cam.setLocation(new Vector3f(68.45442f, 8.235511f, 7.9676695f));
+	cam.setRotation(new Quaternion(0.046916496f, -0.69500375f, 0.045538206f, 0.7160271f));
 
+	flyCam.setMoveSpeed(50);
 
-        flyCam.setMoveSpeed(50);
+	Material mat = new Material(assetManager, "Common/MatDefs/Light/PBRLighting.j3md");
+	Texture diff = assetManager.loadTexture("Textures/Terrain/BrickWall/BrickWall.jpg");
+	diff.setWrap(Texture.WrapMode.Repeat);
+	Texture norm = assetManager.loadTexture("Textures/Terrain/BrickWall/BrickWall_normal.jpg");
+	norm.setWrap(Texture.WrapMode.Repeat);
+	mat.setTexture("BaseColorMap", diff);
+	mat.setTexture("NormalMap", norm);
+	mat.setFloat("Metallic", 0.3f);
+	mat.setFloat("Roughness", 0.2f);
 
-        Material mat = new Material(assetManager, "Common/MatDefs/Light/PBRLighting.j3md");
-        Texture diff = assetManager.loadTexture("Textures/Terrain/BrickWall/BrickWall.jpg");
-        diff.setWrap(Texture.WrapMode.Repeat);
-        Texture norm = assetManager.loadTexture("Textures/Terrain/BrickWall/BrickWall_normal.jpg");
-        norm.setWrap(Texture.WrapMode.Repeat);
-        mat.setTexture("BaseColorMap", diff);
-        mat.setTexture("NormalMap", norm);
-        mat.setFloat("Glossiness", 1.0f);
-        mat.setBoolean("UseSpecGloss", true);
+	PointLight al = new PointLight();
+	al.setColor(new ColorRGBA(1f, 1f, 1f, 1.0f));
+	al.setPosition(new Vector3f(0, 2, 0));
+	al.setRadius(500);
+	rootNode.addLight(al);
 
+	model = (Geometry) assetManager.loadModel("Models/Sponza/Sponza.j3o");
+	model.getMesh().scaleTextureCoordinates(new Vector2f(2, 2));
 
-        PointLight al = new PointLight();
-        al.setColor(new ColorRGBA(1f, 1f, 1f, 1.0f));
-al.setPosition(new Vector3f(0, 2, 0));
-al.setRadius(500);
-        rootNode.addLight(al);
+	model.setMaterial(mat);
 
-        model = (Geometry) assetManager.loadModel("Models/Sponza/Sponza.j3o");
-        model.getMesh().scaleTextureCoordinates(new Vector2f(2, 2));
+	rootNode.attachChild(model);
+	cam.setLocation(new Vector3f(10.247649f, 8.275992f, 10.405156f));
+	cam.setRotation(new Quaternion(-0.083419204f, 0.90370524f, -0.20599906f, -0.36595422f));
 
-        model.setMaterial(mat);
+	FilterPostProcessor fpp = new FilterPostProcessor(assetManager);
 
-        rootNode.attachChild(model);
-        cam.setLocation(new Vector3f(10.247649f, 8.275992f, 10.405156f));
-        cam.setRotation(new Quaternion(-0.083419204f, 0.90370524f, -0.20599906f, -0.36595422f));
-
-
-        FilterPostProcessor fpp = new FilterPostProcessor(assetManager);
-        
-        SsrFilter ssrFilter = new SsrFilter();
-        ssrFilter.setDownSampleFactor(2f);
-        ssrFilter.setApproximateNormals(false);
-        ssrFilter.setFastBlur(true);
-        ssrFilter.setStepLength(0.5f);
-        ssrFilter.setRaySteps(32);
-        ssrFilter.setSigma(5f);
-        ssrFilter.setSampleNearby(false);
-        ssrFilter.setReflectionFactor(0.5f);
-        fpp.addFilter(ssrFilter);
-        viewPort.addProcessor(fpp);
+	SsrFilter ssrFilter = new SsrFilter();
+	ssrFilter.setDownSampleFactor(1.5f);
+	ssrFilter.setApproximateNormals(true);
+	ssrFilter.setFastBlur(true);
+	ssrFilter.setStepLength(0.5f);
+	ssrFilter.setRaySteps(32);
+	ssrFilter.setSigma(5f);
+	ssrFilter.setSampleNearby(false);
+	ssrFilter.setReflectionFactor(0.5f);
+	fpp.addFilter(ssrFilter);
+	viewPort.addProcessor(fpp);
     }
 
     @Override
